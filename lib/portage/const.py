@@ -165,6 +165,7 @@ SUPPORTED_FEATURES       = frozenset([
 	"network-sandbox",
 	"network-sandbox-proxy",
 	"news",
+	"no-env-update",
 	"noauto",
 	"noclean",
 	"nodoc",
