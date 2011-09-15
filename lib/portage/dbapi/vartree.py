@@ -80,6 +80,7 @@ from ._ContentsCaseSensitivityManager import ContentsCaseSensitivityManager
 
 import argparse
 import errno
+import fileinput
 import fnmatch
 import functools
 import gc
@@ -4749,6 +4750,19 @@ class dblink:
 			target_root=self.settings['ROOT'], prev_mtimes=prev_mtimes,
 			contents=contents, env=self.settings,
 			writemsg_level=self._display_merge, vardbapi=self.vartree.dbapi)
+
+		# Fix *.la files to point to libs in target_root, if they
+		# don't do so already.
+		re_root = self.settings["ROOT"].strip("/")
+		if re_root:
+			fix_files = []
+			for path in contents:
+				if path.endswith(".la"):
+					if os.path.exists(path): fix_files.append(path)
+			if fix_files:
+				pat = re.compile(r"([' =](?:-[IL])?/)(usr|lib|opt)")
+				for line in fileinput.input(fix_files, inplace=1):
+					sys.stdout.write(pat.sub(r"\1%s/\2" % re_root, line))
 
 		# For gcc upgrades, preserved libs have to be removed after the
 		# the library path has been updated.
