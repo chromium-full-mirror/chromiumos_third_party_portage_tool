@@ -184,6 +184,7 @@ SUPPORTED_FEATURES       = frozenset([
 	"qa-unresolved-soname-deps",
 	"sandbox",
 	"selinux",
+	"separatedebug",
 	"sesandbox",
 	"sfperms",
 	"sign",
