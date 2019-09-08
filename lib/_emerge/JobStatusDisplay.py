@@ -1,6 +1,7 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
+import datetime
 import io
 import sys
 import time
@@ -124,7 +125,7 @@ class JobStatusDisplay:
 		return True
 
 	def _format_msg(self, msg):
-		return ">>> %s" % msg
+		return ">>> %s %s" % (datetime.datetime.now().strftime('%H:%M:%S'), msg)
 
 	def _erase(self):
 		self._write(
