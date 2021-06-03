@@ -467,6 +467,7 @@ _doebuild_manifest_exempt_depend = 0
 _testing_eapis = frozenset([
 ])
 _deprecated_eapis = frozenset([
+	"0", "1", "2",
 	"3_pre1",
 	"3_pre2",
 	"4_pre1",
