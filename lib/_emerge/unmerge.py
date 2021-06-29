@@ -287,7 +287,6 @@ def _unmerge_display(root_config, myopts, unmerge_action,
 					# is protected, and the rest are selected
 		numselected = len(all_selected)
 		if global_unmerge and not numselected:
-			portage.writemsg_stdout("\n>>> No outdated packages were found on your system.\n")
 			return 1, {}
 	
 		if not numselected:
