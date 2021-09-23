@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 1998-2019 Gentoo Authors
+#!/usr/bin/env python3
+# Copyright 1998-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 from __future__ import print_function
