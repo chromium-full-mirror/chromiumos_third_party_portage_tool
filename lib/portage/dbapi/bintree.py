@@ -133,7 +133,7 @@ class bindbapi(fakedbapi):
 			support_string=True)
 		if not self._known_keys.intersection(
 			wants).difference(self._aux_cache_keys):
-			aux_cache = self.cpvdict[instance_key]
+			aux_cache = self.cpvdict.get(instance_key)
 			if aux_cache is not None:
 				return [aux_cache.get(x, "") for x in wants]
 		mysplit = mycpv.split("/")
