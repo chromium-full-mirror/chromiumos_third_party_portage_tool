@@ -214,6 +214,13 @@ def _lockfile_iteration(mypath, wantnewlockfile=False, unlinkfile=False,
 		try:
 			def check_lock(path):
 				ret = []
+				contents = '???'
+				try:
+					with open(path) as fp:
+						contents = fp.readline()
+				except:
+					pass
+				ret.append('contents: %s' % (contents,))
 				while path != '/':
 					try:
 						st = os.stat(path)
@@ -227,7 +234,19 @@ def _lockfile_iteration(mypath, wantnewlockfile=False, unlinkfile=False,
 			while True:
 				try:
 					before_status = check_lock(lockfilename)
-					myfd = os.open(lockfilename, os.O_CREAT|os.O_RDWR, 0o660)
+					myfd = os.open(lockfilename, os.O_CREAT|os.O_RDWR, 0o664)
+					if os.path.basename(lockfilename) == '.ipc_lock':
+						parent_commandline = '???'
+						try:
+							with open(f'/proc/{os.getppid()}/cmdline', 'rb') as fp:
+								parent_commandline = fp.read().replace(b'\0', b' ').decode('utf-8')
+						except:
+							pass
+						try:
+							os.write(myfd, '[%s] -> %s' % (parent_commandline, ' '.join(sys.argv)))
+							os.fsync(myfd)
+						except:
+							pass
 				except OSError as e:
 					after_status = check_lock(lockfilename)
 					if e.errno in (errno.ENOENT, errno.ESTALE) and os.path.isdir(os.path.dirname(lockfilename)):
