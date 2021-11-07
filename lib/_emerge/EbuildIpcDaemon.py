@@ -82,7 +82,7 @@ class EbuildIpcDaemon(FifoIpcDaemon):
 			# case the write will be lost. Therefore, try for a non-blocking
 			# lock, and only re-open the pipe if the lock is acquired.
 			lock_filename = os.path.join(
-				os.path.dirname(self.input_fifo), '.ipc_lock')
+				os.path.dirname(self.input_fifo), 'lock')
 			try:
 				lock_obj = lockfile(lock_filename, unlinkfile=True,
 					flags=os.O_NONBLOCK)
