@@ -778,6 +778,7 @@ class Scheduler(PollScheduler):
 
 		failures = 0
 		sched_iface = loop = asyncio._wrap_loop(loop or self._sched_iface)
+		did_work = False
 
 		for x in self._mergelist:
 			if not isinstance(x, Package):
@@ -796,8 +797,9 @@ class Scheduler(PollScheduler):
 			if self._terminated_tasks:
 				raise asyncio.CancelledError
 
+			did_work = True
 			out_str = "Running pre-merge checks for " + colorize("INFORM", x.cpv)
-			self._status_msg(out_str)
+			self._status_msg(out_str, end='')
 
 			root_config = x.root_config
 			settings = self._allocate_config(root_config.root)
@@ -947,6 +949,9 @@ class Scheduler(PollScheduler):
 
 				await build_dir.async_unlock()
 				self._deallocate_config(settings)
+
+		if did_work:
+			self._status_msg('Finished pre-merge checks', end='')
 
 		if failures:
 			return FAILURE
