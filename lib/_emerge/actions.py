@@ -2229,7 +2229,8 @@ def action_uninstall(settings, trees, ldpath_mtimes,
 	if files and not valid_atoms:
 		return 1
 
-	if action == 'unmerge' and \
+	# We don't need/care about this in CrOS.
+	if False and action == 'unmerge' and \
 		'--quiet' not in opts and \
 		'--quiet-unmerge-warn' not in opts:
 		msg = "This action can remove important packages! " + \

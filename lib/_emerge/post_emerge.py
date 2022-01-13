@@ -45,6 +45,8 @@ def display_news_notification(root_config, myopts):
 	return True
 
 def show_depclean_suggestion():
+	# We don't need/care about this in CrOS.
+	return
 	out = portage.output.EOutput()
 	msg = "After world updates, it is important to remove " + \
 		"obsolete packages with emerge --depclean. Refer " + \
