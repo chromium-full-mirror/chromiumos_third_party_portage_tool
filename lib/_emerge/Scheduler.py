@@ -776,6 +776,10 @@ class Scheduler(PollScheduler):
 		--jobs).
 		"""
 
+		# The vast majority of checks are kernel configs or disk/memory sizes.
+		# We don't need/care about those in CrOS.
+		return os.EX_OK
+
 		failures = 0
 		sched_iface = loop = asyncio._wrap_loop(loop or self._sched_iface)
 		did_work = False
