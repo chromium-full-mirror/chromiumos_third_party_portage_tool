@@ -777,6 +777,10 @@ class Scheduler(PollScheduler):
 		--jobs).
 		"""
 
+		# The vast majority of checks are kernel configs or disk/memory sizes.
+		# We don't need/care about those in CrOS.
+		return os.EX_OK
+
 		failures = 0
 
 		# Use a local EventLoop instance here, since we don't
