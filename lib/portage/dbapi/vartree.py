@@ -5613,8 +5613,27 @@ def merge(mycat, mypkg, pkgloc, infloc,
 		infloc=infloc, myebuild=myebuild, mydbapi=mydbapi,
 		prev_mtimes=prev_mtimes, logfile=settings.get('PORTAGE_LOG_FILE'),
 		fd_pipes=fd_pipes)
+
 	merge_task.start()
 	retcode = merge_task.wait()
+
+	# Move the temporary artifacts to a permanent location.
+	artifacts_tmp = settings['CROS_ARTIFACTS_TMP_DIR']
+	try:
+		os.rmdir(artifacts_tmp)
+		is_empty = True
+	except OSError as e:
+		if e.errno != errno.ENOTEMPTY:
+			raise
+		is_empty = False
+	artifacts_dir = os.path.join(
+		'/var/lib/chromeos/package-artifacts',
+		settings['CATEGORY'],
+		settings['PF'] + ('-failed' if retcode else ''))
+	shutil.rmtree(artifacts_dir, ignore_errors=True)
+	if not is_empty:
+		os.rename(artifacts_tmp, artifacts_dir)
+
 	return retcode
 
 def unmerge(cat, pkg, myroot=None, settings=None,
