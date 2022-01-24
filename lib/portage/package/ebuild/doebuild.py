@@ -404,6 +404,8 @@ def doebuild_environment(myebuild, mydo, myroot=None, settings=None,
 			mysettings["BUILD_PREFIX"],
 			mysettings["CATEGORY"], mysettings["PF"])
 
+	mysettings["CROS_ARTIFACTS_TMP_DIR"] = os.path.join(mysettings["PORTAGE_BUILDDIR"], "cros-artifacts")
+
 	mysettings["HOME"] = os.path.join(mysettings["PORTAGE_BUILDDIR"], "homedir")
 	mysettings["WORKDIR"] = os.path.join(mysettings["PORTAGE_BUILDDIR"], "work")
 	mysettings["D"] = os.path.join(mysettings["PORTAGE_BUILDDIR"], "image") + os.sep
@@ -837,6 +839,12 @@ def doebuild(myebuild, mydo, _unused=DeprecationWarning, settings=None, debug=0,
 				if builddir_lock is not None:
 					builddir_lock.scheduler.run_until_complete(
 						builddir_lock.async_unlock())
+
+			shutil.rmtree(mysettings["CROS_ARTIFACTS_TMP_DIR"], ignore_errors=True)
+			# Create the directory, making it world readable and writable, to avoid any
+			# problems with writing and reading by different users.
+			os.makedirs(mysettings["CROS_ARTIFACTS_TMP_DIR"], exist_ok=True)
+			os.chmod(mysettings["CROS_ARTIFACTS_TMP_DIR"], 0o777)
 
 		# get possible slot information from the deps file
 		if mydo == "depend":
