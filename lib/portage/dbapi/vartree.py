@@ -2358,10 +2358,12 @@ class dblink:
 		else:
 			self.settings.pop("PORTAGE_LOG_FILE", None)
 
-		env_update(target_root=self.settings['ROOT'],
-			prev_mtimes=ldpath_mtimes,
-			contents=contents, env=self.settings,
-			writemsg_level=self._display_merge, vardbapi=self.vartree.dbapi)
+		# If we didn't unmerge anything, don't bother updating env.
+		if contents:
+			env_update(target_root=self.settings['ROOT'],
+				prev_mtimes=ldpath_mtimes,
+				contents=contents, env=self.settings,
+				writemsg_level=self._display_merge, vardbapi=self.vartree.dbapi)
 
 		unmerge_with_replacement = preserve_paths is not None
 		if not unmerge_with_replacement:
@@ -4748,11 +4750,13 @@ class dblink:
 				_("FAILED postinst: %s") % (a,),
 			])
 
-		#update environment settings, library paths. DO NOT change symlinks.
-		env_update(
-			target_root=self.settings['ROOT'], prev_mtimes=prev_mtimes,
-			contents=contents, env=self.settings,
-			writemsg_level=self._display_merge, vardbapi=self.vartree.dbapi)
+		# Update environment settings, library paths. DO NOT change symlinks.
+		# Only do this if we actually installed something.
+		if contents:
+			env_update(
+				target_root=self.settings['ROOT'], prev_mtimes=prev_mtimes,
+				contents=contents, env=self.settings,
+				writemsg_level=self._display_merge, vardbapi=self.vartree.dbapi)
 
 		# Fix *.la files to point to libs in target_root, if they
 		# don't do so already.
