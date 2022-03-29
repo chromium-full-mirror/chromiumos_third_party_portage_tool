@@ -3471,8 +3471,9 @@ class dblink(object):
 			progress_shown = False
 			report_interval = 1.7  # seconds
 			falign = len("%d" % totfiles)
-			showMessage(_(" %s checking %d files for package collisions\n") % \
-				(colorize("GOOD", "*"), totfiles))
+			if totfiles:
+				showMessage(_(" %s checking %d files for package collisions\n") % \
+					(colorize("GOOD", "*"), totfiles))
 			for i, (f, f_type) in enumerate(chain(
 				((f, "reg") for f in file_list),
 				((f, "sym") for f in symlink_list))):
