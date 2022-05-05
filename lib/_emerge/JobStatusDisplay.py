@@ -132,7 +132,9 @@ class JobStatusDisplay(object):
 		return True
 
 	def _format_msg(self, msg):
-		return ">>> %s %s" % (datetime.datetime.now().strftime('%H:%M:%S'), msg)
+		# Truncate to milliseconds.
+		stamp = datetime.datetime.now().strftime('%H:%M:%S.%f')[0:12]
+		return ">>> %s %s" % (stamp, msg)
 
 	def _erase(self):
 		self._write(
