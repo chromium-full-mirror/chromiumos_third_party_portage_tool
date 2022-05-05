@@ -288,6 +288,7 @@ postinst_qa_check() {
 			[[ -f ${f} ]] && qa_checks+=( "${f##*/}" )
 		done
 	done
+	[[ ${#qa_checks[@]} -eq 0 ]] && return 0
 
 	# Now we need to sort the filenames lexically, and process
 	# them in order.
