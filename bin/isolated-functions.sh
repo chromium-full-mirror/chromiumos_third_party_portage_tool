@@ -239,7 +239,11 @@ __quiet_mode() {
 }
 
 __vecho() {
-	__quiet_mode || echo "$(date +%H:%M:%S)" "$@" >&2
+	if ! __quiet_mode ; then
+		# Turn nanoseconds into milliseconds.
+		local stamp="$(date +%H:%M:%S.%N)"
+		echo "${stamp:0:12}" "$@" >&2
+	fi
 }
 
 # Internal logging function, don't use this in ebuilds
