@@ -406,7 +406,7 @@ def paren_enclose(mylist, unevaluated_atom=False, opconvert=False):
 			mystrparts.append(x)
 	return " ".join(mystrparts)
 
-@lru_cache(1024)
+@lru_cache(maxsize=None)
 def _use_reduce_cached(depstr, uselist=(), masklist=(), matchall=False, excludeall=(), is_src_uri=False, \
 	eapi=None, opconvert=False, flat=False, is_valid_flag=None, token_class=None, matchnone=False):
 	if opconvert and flat:
