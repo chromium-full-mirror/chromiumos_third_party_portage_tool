@@ -108,7 +108,7 @@ def ververify(myver, silent=1):
 		print(_("!!! syntax error in version: %s") % myver)
 	return False
 
-@lru_cache(1024)
+@lru_cache(maxsize=None)
 def vercmp(ver1, ver2, silent=1):
 	"""
 	Compare two versions
@@ -306,7 +306,7 @@ def _pkgsplit(mypkg, eapi=None):
 _cat_re = re.compile('^%s$' % _cat, re.UNICODE)
 _missing_cat = 'null'
 
-@lru_cache(10240)
+@lru_cache(maxsize=None)
 def catpkgsplit(mydata, silent=1, eapi=None):
 	"""
 	Takes a Category/Package-Version-Rev and returns a list of each.

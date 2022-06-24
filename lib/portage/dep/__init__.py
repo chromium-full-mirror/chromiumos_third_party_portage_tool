@@ -399,7 +399,7 @@ def paren_enclose(mylist, unevaluated_atom=False, opconvert=False):
 			mystrparts.append(x)
 	return " ".join(mystrparts)
 
-@lru_cache(1024)
+@lru_cache(maxsize=None)
 def _use_reduce_cached(depstr, uselist, masklist, matchall, excludeall, \
 	is_src_uri,  eapi, opconvert, flat, is_valid_flag, token_class, \
 	matchnone,subset):
