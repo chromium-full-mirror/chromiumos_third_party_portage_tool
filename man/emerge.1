@@ -1131,6 +1131,13 @@ applies to the \fB\-\-depclean\fR action. The default
 \fB\-\-with\-bdeps=y\fR setting that applies to the \fB\-\-depclean\fR
 action can be overridden only by specifying \fB\-\-with\-bdeps=n\fR.
 .TP
+.BR "\-\-with\-bdepends < y | n >"
+This option is used to enable or disable inclusion of \fBBDEPEND\fR
+dependencies. By default, \fBBDEPEND\fR support is enabled.
+
+If this option is not specified, then \fB\-\-with\-bdeps\fR will control
+\fBBDEPEND\fR usage instead.
+.TP
 .BR "\-\-with\-test\-deps [ y | n ]"
 For packages matched by arguments, this option will pull in dependencies
 that are conditional on the "test" USE flag, even if "test" is not
