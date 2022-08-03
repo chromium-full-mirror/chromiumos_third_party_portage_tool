@@ -2079,15 +2079,9 @@ class depgraph:
 							# handled as a built slot operator dependency when
 							# appropriate (see bug 764764).
 							atom = atom._orig_atom
-						# This parent may need to be rebuilt, therefore
-						# discard its soname and built slot operator
-						# dependency components which are not necessarily
-						# relevant.
-						if atom.soname:
-							continue
-						elif atom.package and atom.slot_operator_built:
-							# This discards the slot/subslot component.
-							atom = atom.with_slot("=")
+						# This parent may need to be rebuilt, so its
+						# dependencies aren't necessarily relevant.
+						continue
 
 					if replacement_parent is not None and \
 						(replacement_parent.slot_atom == parent.slot_atom
