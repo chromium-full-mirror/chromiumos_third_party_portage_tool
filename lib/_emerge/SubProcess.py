@@ -24,7 +24,7 @@ class SubProcess(AbstractPollTask):
 		return self.returncode
 
 	def _cancel(self):
-		if self.isAlive() and self.pid is not None:
+		if self.isAlive():
 			try:
 				os.kill(self.pid, signal.SIGTERM)
 			except OSError as e:
@@ -36,6 +36,10 @@ class SubProcess(AbstractPollTask):
 						noiselevel=-1)
 				elif e.errno != errno.ESRCH:
 					raise
+
+	def isAlive(self):
+		return self.pid is not None and \
+			self.returncode is None
 
 	def _async_wait(self):
 		if self.returncode is None:
