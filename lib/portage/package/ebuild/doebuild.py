@@ -183,6 +183,7 @@ def _doebuild_spawn(phase, settings, actionmap=None, **kwargs):
 
 	if phase == "clean":
 		shutil.rmtree(artifacts_tmp_dir, ignore_errors=True)
+	if phase == "setup":
 		# Create the directory, making it world readable and writable, to avoid any
 		# problems with writing and reading by different users.
 		os.makedirs(artifacts_tmp_dir, exist_ok=True)
