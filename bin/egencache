@@ -116,6 +116,9 @@ def parse_args(args):
 	common.add_argument("--repositories-configuration",
 		help="override configuration of repositories (in format of repos.conf)",
 		dest="repositories_configuration")
+	common.add_argument("--repos-conf",
+		help="override configuration of repositories with custom repos.conf",
+		dest="repos_conf")
 	common.add_argument("--sign-manifests",
 		choices=('y', 'n'),
 		metavar="<y|n>",
@@ -875,6 +878,10 @@ def egencache_main(args):
 
 	if options.repositories_configuration is not None:
 		env['PORTAGE_REPOSITORIES'] = options.repositories_configuration
+
+	if options.repos_conf is not None:
+		with open(options.repos_conf) as fp:
+			env['PORTAGE_REPOSITORIES'] = fp.read()
 
 	if options.cache_dir is not None:
 		env['PORTAGE_DEPCACHEDIR'] = options.cache_dir

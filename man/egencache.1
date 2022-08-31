@@ -80,8 +80,11 @@ Name of the repo to operate on. The name should correspond the value of
 a \fBrepo_name\fR entry (see \fBportage\fR(5)) from one of the repositories.
 .TP
 .BR "\-\-repositories\-configuration=REPOSITORIES_CONFIGURATION"
-Override configuration of repositories. The argument of this option has
-the same format as repos.conf (see \fBportage\fR(5)).
+Override configuration of repositories with an inline string. The argument of
+this option has the same format as repos.conf (see \fBportage\fR(5)).
+.TP
+.BR "\-\-repos\-conf=FILE"
+Override configuration of repositories with a different repos.conf file.
 .TP
 .BR "\-\-rsync"
 When used together with the \fB\-\-update\fR action, this enables a workaround
