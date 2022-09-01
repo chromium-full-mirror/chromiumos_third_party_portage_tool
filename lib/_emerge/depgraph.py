@@ -4,6 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 
 import collections
+import datetime
 import errno
 import functools
 import io
@@ -9766,6 +9767,7 @@ def _spinner_start(spinner, myopts):
 		spinner.update = spinner.update_quiet
 
 	if show_spinner:
+		spinner.start_time = datetime.datetime.utcnow()
 		portage.writemsg_stdout("Calculating dependencies  ")
 
 def _spinner_stop(spinner):
@@ -9778,7 +9780,8 @@ def _spinner_stop(spinner):
 		# so don't output backspaces in that case.
 		portage.writemsg_stdout("\b\b")
 
-	portage.writemsg_stdout("... done!\n")
+	end_time = datetime.datetime.utcnow()
+	portage.writemsg_stdout("... done in %s\n" % (end_time - spinner.start_time))
 
 def backtrack_depgraph(settings, trees, myopts, myparams,
 	myaction, myfiles, spinner):
