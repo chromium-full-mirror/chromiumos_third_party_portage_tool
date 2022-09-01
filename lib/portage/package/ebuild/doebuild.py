@@ -209,6 +209,8 @@ def _doebuild_spawn(phase, settings, actionmap=None, **kwargs):
 				settings["PF"])
 			shutil.rmtree(artifacts_dir, ignore_errors=True)
 			if not is_empty:
+				# renames doesn't handle EEXIST when dirs are created in parallel.
+				os.makedirs(os.path.dirname(artifacts_dir), exist_ok=True)
 				os.renames(artifacts_tmp_dir, artifacts_dir)
 		settings.pop('EBUILD_PHASE', None)
 
