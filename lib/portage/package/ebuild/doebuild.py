@@ -199,9 +199,12 @@ def _doebuild_spawn(phase, settings, actionmap=None, **kwargs):
 				os.rmdir(artifacts_tmp_dir)
 				is_empty = True
 			except OSError as e:
-				if e.errno != errno.ENOTEMPTY and e.errno != errno.ENOENT:
+				if e.errno == errno.ENOTEMPTY:
+					is_empty = False
+				elif e.errno == errno.ENOENT:
+					is_empty = True
+				else:
 					raise
-				is_empty = False
 			artifacts_dir = os.path.join(
 				settings["SYSROOT"],
 				"var/lib/chromeos/package-artifacts",
