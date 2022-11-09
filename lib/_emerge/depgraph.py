@@ -2020,6 +2020,75 @@ class depgraph(object):
 
 		return None
 
+	def _slot_operator_check_reverse_dependencies(self, existing_pkg, candidate_pkg,
+		replacement_parent=None):
+		"""
+		Check if candidate_pkg satisfies all of existing_pkg's non-
+		slot operator parents.
+		"""
+		built_slot_operator_parents = set()
+		for parent, atom in self._dynamic_config._parent_atoms.get(existing_pkg, []):
+			if atom.soname or atom.slot_operator_built:
+				built_slot_operator_parents.add(parent)
+
+		for parent, atom in self._dynamic_config._parent_atoms.get(existing_pkg, []):
+			if isinstance(parent, Package):
+				if parent in built_slot_operator_parents:
+					# This parent may need to be rebuilt, so its
+					# dependencies aren't necessarily relevant.
+					continue
+
+				if replacement_parent is not None and \
+					(replacement_parent.slot_atom == parent.slot_atom
+					or replacement_parent.cpv == parent.cpv):
+					# This parent is irrelevant because we intend to
+					# replace it with replacement_parent.
+					continue
+
+				if any(pkg is not parent and
+					(pkg.slot_atom == parent.slot_atom or
+					pkg.cpv == parent.cpv) for pkg in
+					self._dynamic_config._package_tracker.match(
+					parent.root, Atom(parent.cp))):
+					# This parent may need to be eliminated due to a
+					# slot conflict,  so its dependencies aren't
+					# necessarily relevant.
+					continue
+
+				if (not self._too_deep(parent.depth) and
+					not self._frozen_config.excluded_pkgs.
+					findAtomForPackage(parent,
+					modified_use=self._pkg_use_enabled(parent))):
+					# Check for common reasons that the parent's
+					# dependency might be irrelevant.
+					if self._upgrade_available(parent):
+						# This parent could be replaced by
+						# an upgrade (bug 584626).
+						continue
+					if parent.installed and self._in_blocker_conflict(parent):
+						# This parent could be uninstalled in order
+						# to solve a blocker conflict (bug 612772).
+						continue
+					if self._dynamic_config.digraph.has_edge(parent,
+						existing_pkg):
+						# There is a direct circular dependency between
+						# parent and existing_pkg. This type of
+						# relationship tends to prevent updates
+						# of packages (bug 612874). Since candidate_pkg
+						# is available, we risk a missed update if we
+						# don't try to eliminate this parent from the
+						# graph. Therefore, we give candidate_pkg a
+						# chance, and assume that it will be masked
+						# by backtracking if necessary.
+						continue
+
+			atom_set = InternalPackageSet(initial_atoms=(atom,),
+				allow_repo=True)
+			if not atom_set.findAtomForPackage(candidate_pkg,
+				modified_use=self._pkg_use_enabled(candidate_pkg)):
+				return False
+		return True
+
 	def _slot_operator_update_probe(self, dep, new_child_slot=False,
 		slot_conflict=False, autounmask_level=None):
 		"""
@@ -2047,75 +2116,6 @@ class depgraph(object):
 		want_downgrade = None
 		want_downgrade_parent = None
 
-		def check_reverse_dependencies(existing_pkg, candidate_pkg,
-			replacement_parent=None):
-			"""
-			Check if candidate_pkg satisfies all of existing_pkg's non-
-			slot operator parents.
-			"""
-			built_slot_operator_parents = set()
-			for parent, atom in self._dynamic_config._parent_atoms.get(existing_pkg, []):
-				if atom.soname or atom.slot_operator_built:
-					built_slot_operator_parents.add(parent)
-
-			for parent, atom in self._dynamic_config._parent_atoms.get(existing_pkg, []):
-				if isinstance(parent, Package):
-					if parent in built_slot_operator_parents:
-						# This parent may need to be rebuilt, so its
-						# dependencies aren't necessarily relevant.
-						continue
-
-					if replacement_parent is not None and \
-						(replacement_parent.slot_atom == parent.slot_atom
-						or replacement_parent.cpv == parent.cpv):
-						# This parent is irrelevant because we intend to
-						# replace it with replacement_parent.
-						continue
-
-					if any(pkg is not parent and
-						(pkg.slot_atom == parent.slot_atom or
-						pkg.cpv == parent.cpv) for pkg in
-						self._dynamic_config._package_tracker.match(
-						parent.root, Atom(parent.cp))):
-						# This parent may need to be eliminated due to a
-						# slot conflict,  so its dependencies aren't
-						# necessarily relevant.
-						continue
-
-					if (not self._too_deep(parent.depth) and
-						not self._frozen_config.excluded_pkgs.
-						findAtomForPackage(parent,
-						modified_use=self._pkg_use_enabled(parent))):
-						# Check for common reasons that the parent's
-						# dependency might be irrelevant.
-						if self._upgrade_available(parent):
-							# This parent could be replaced by
-							# an upgrade (bug 584626).
-							continue
-						if parent.installed and self._in_blocker_conflict(parent):
-							# This parent could be uninstalled in order
-							# to solve a blocker conflict (bug 612772).
-							continue
-						if self._dynamic_config.digraph.has_edge(parent,
-							existing_pkg):
-							# There is a direct circular dependency between
-							# parent and existing_pkg. This type of
-							# relationship tends to prevent updates
-							# of packages (bug 612874). Since candidate_pkg
-							# is available, we risk a missed update if we
-							# don't try to eliminate this parent from the
-							# graph. Therefore, we give candidate_pkg a
-							# chance, and assume that it will be masked
-							# by backtracking if necessary.
-							continue
-
-				atom_set = InternalPackageSet(initial_atoms=(atom,),
-					allow_repo=True)
-				if not atom_set.findAtomForPackage(candidate_pkg,
-					modified_use=self._pkg_use_enabled(candidate_pkg)):
-					return False
-			return True
-
 
 		for replacement_parent in self._iter_similar_available(dep.parent,
 			dep.parent.slot_atom, autounmask_level=autounmask_level):
@@ -2130,7 +2130,8 @@ class depgraph(object):
 				if not want_downgrade_parent:
 					continue
 
-			if not check_reverse_dependencies(dep.parent, replacement_parent):
+			if not self._slot_operator_check_reverse_dependencies(dep.parent,
+				replacement_parent):
 				continue
 
 			selected_atoms = None
@@ -2240,8 +2241,8 @@ class depgraph(object):
 							break
 
 					if not insignificant and \
-						check_reverse_dependencies(dep.child, pkg,
-							replacement_parent=replacement_parent):
+						self._slot_operator_check_reverse_dependencies(dep.child,
+							pkg, replacement_parent=replacement_parent):
 
 						candidate_pkg_atoms.append(
 							(pkg, unevaluated_atom or atom))
