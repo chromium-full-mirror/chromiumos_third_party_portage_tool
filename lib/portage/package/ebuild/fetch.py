@@ -438,6 +438,8 @@ def fetch(myuris, mysettings, listonly=0, fetchonly=0,
 				filedict[myfile].append(locations[y]+"/distfiles/"+myfile)
 		if myuri is None:
 			continue
+		if force_mirror:
+			continue
 		if myuri[:9]=="mirror://":
 			eidx = myuri.find("/", 9)
 			if eidx != -1:
