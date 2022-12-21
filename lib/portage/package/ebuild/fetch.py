@@ -273,6 +273,9 @@ def fetch(myuris, mysettings, listonly=0, fetchonly=0,
 	userpriv = secpass >= 2 and "userpriv" in features
 
 	# 'nomirror' is bad/negative logic. You Restrict mirroring, not no-mirroring.
+	if "nomirror" in restrict:
+		print(_("!!! Use RESTRICT=mirror, not RESTRICT=nomirror.\n"))
+		raise PortageException("Invalid RESTRICT setting")
 	restrict_mirror = "mirror" in restrict or "nomirror" in restrict
 	if restrict_mirror:
 		if ("mirror" in features) and ("lmirror" not in features):
