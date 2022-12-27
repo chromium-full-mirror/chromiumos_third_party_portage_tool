@@ -21,6 +21,11 @@ try:
 except ImportError:
 	from urlparse import urlparse
 
+try:
+	from urllib.parse import quote as urlquote
+except ImportError:
+	from urllib import quote as urlquote
+
 import portage
 portage.proxy.lazyimport.lazyimport(globals(),
 	'portage.package.ebuild.config:check_config_instance,config',
@@ -435,7 +440,9 @@ def fetch(myuris, mysettings, listonly=0, fetchonly=0,
 		if myfile not in filedict:
 			filedict[myfile]=[]
 			for y in range(0,len(locations)):
-				filedict[myfile].append(locations[y]+"/distfiles/"+myfile)
+				filedict[myfile].append(
+					locations[y] + "/distfiles/" + (
+					urlquote(myfile) if locations[y].startswith('http') else myfile))
 		if myuri is None:
 			continue
 		if force_mirror:
