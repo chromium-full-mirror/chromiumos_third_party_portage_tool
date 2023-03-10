@@ -44,10 +44,11 @@ class EbuildBinpkg(CompositeTask):
 				os.unlink(self._binpkg_tmpfile)
 			except OSError:
 				pass
-			try:
-				os.unlink(self._symbols_tmpfile)
-			except OSError:
-				pass
+			if self._symbols_tmpfile:
+				try:
+					os.unlink(self._symbols_tmpfile)
+				except OSError:
+					pass
 			self.wait()
 			return
 
