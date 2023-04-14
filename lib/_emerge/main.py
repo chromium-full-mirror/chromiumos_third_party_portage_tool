@@ -701,6 +701,11 @@ def parse_opts(tmpcmdline, silent=False):
 		 "action" : "store"
 		},
 
+		"--root-cros-vdb-strip-prefix": {
+		 "help"   : "specify the root prefix used to find the vdb root",
+		 "action" : "store"
+		},
+
 		"--root-deps": {
 			"help"    : "modify interpretation of depedencies",
 			"choices" :("True", "rdeps")
@@ -1214,6 +1219,8 @@ def emerge_main(args=None):
 		os.environ["SYSROOT"] = myopts["--sysroot"]
 	if "--root" in myopts:
 		os.environ["ROOT"] = myopts["--root"]
+	if "--root-cros-vdb-strip-prefix" in myopts:
+		os.environ["ROOT_CROS_VDB_STRIP_PREFIX"] = myopts["--root-cros-vdb-strip-prefix"]
 	if "--prefix" in myopts:
 		os.environ["EPREFIX"] = myopts["--prefix"]
 	if "--accept-properties" in myopts:

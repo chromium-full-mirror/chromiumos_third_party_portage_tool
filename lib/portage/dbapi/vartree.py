@@ -4409,6 +4409,20 @@ class dblink(object):
 		finally:
 			self.vartree.dbapi._fs_unlock()
 
+		with io.open(_unicode_encode(os.path.join(self.dbtmpdir, "ROOT"),
+			encoding=_encodings['fs'], errors='strict'),
+			mode='w', encoding=_encodings['repo.content'],
+			errors='replace') as f:
+			root = self.settings["ROOT"]
+			# The install (root) path is prefixed by ROOT_CROS_VDB_STRIP_PREFIX
+			# when packages are installed in the image.
+			strip_prefix = os.environ.get("ROOT_CROS_VDB_STRIP_PREFIX")
+			if strip_prefix:
+				strip_prefix = os.path.normpath(strip_prefix)
+				if root.startswith(f"{strip_prefix}/"):
+					root = root[len(strip_prefix):]
+			f.write(root)
+
 		# These caches are populated during collision-protect and the data
 		# they contain is now invalid. It's very important to invalidate
 		# the contents_inodes cache so that FEATURES=unmerge-orphans
