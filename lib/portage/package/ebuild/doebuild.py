@@ -1582,7 +1582,8 @@ def spawn(mystring, mysettings, debug=False, free=False, droppriv=False,
 	# TODO: Enable fakeroot to be used together with droppriv.  The
 	# fake ownership/permissions will have to be converted to real
 	# permissions in the merge phase.
-	fakeroot = fakeroot and uid != 0 and portage.process.fakeroot_capable
+	# CHROMIUM: We want to allow fakeroot to execute when UID = 0.
+	fakeroot = fakeroot and portage.process.fakeroot_capable
 	portage_build_uid = os.getuid()
 	portage_build_gid = os.getgid()
 	logname = None
