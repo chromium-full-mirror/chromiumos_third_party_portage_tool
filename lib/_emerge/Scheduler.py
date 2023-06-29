@@ -19,6 +19,7 @@ import zlib
 
 import portage
 from portage import os
+from portage import telemetry
 from portage import _encodings
 from portage import _unicode_encode
 from portage.cache.mappings import slot_dict_class
@@ -70,6 +71,8 @@ if sys.hexversion >= 0x3000000:
 # enums
 FAILURE = 1
 
+
+tracer = telemetry.get_tracer(__name__)
 
 class Scheduler(PollScheduler):
 
@@ -939,6 +942,7 @@ class Scheduler(PollScheduler):
 			return FAILURE
 		return os.EX_OK
 
+	@tracer.start_as_current_span("scheduler.merge")
 	def merge(self):
 		if "--resume" in self.myopts:
 			# We're resuming.
@@ -1763,6 +1767,10 @@ class Scheduler(PollScheduler):
 
 			if not pkg.installed:
 				self._pkg_count.curval += 1
+
+			if self._digraph:
+				parents = self._digraph.parent_nodes(pkg) or []
+				pkg.parents = [str(p.cpv) for p in parents if isinstance(p, Package)]
 
 			task = self._task(pkg)
 

@@ -20,6 +20,7 @@ portage.proxy.lazyimport.lazyimport(globals(),
 	'_emerge.is_valid_package_atom:insert_category_into_atom'
 )
 from portage import os
+from portage import telemetry
 from portage.sync import _SUBMODULE_PATH_MAP
 
 if sys.hexversion >= 0x3000000:
@@ -87,6 +88,8 @@ COWSAY_MOO = r"""
                 ||     ||
 
 """
+
+tracer = telemetry.get_tracer(__name__)
 
 def multiple_actions(action1, action2):
 	sys.stderr.write("\n!!! Multiple actions requested... Please choose one only.\n")
@@ -296,6 +299,7 @@ def _find_bad_atoms(atoms, less_strict=False):
 	return bad_atoms
 
 
+@tracer.start_as_current_span("parse_opts")
 def parse_opts(tmpcmdline, silent=False):
 	myaction=None
 	myopts = {}
@@ -1186,6 +1190,7 @@ def profile_check(trees, myaction):
 		return 1
 	return os.EX_OK
 
+@tracer.start_as_current_span("emerge_main")
 def emerge_main(args=None):
 	"""
 	@param args: command arguments (default: sys.argv[1:])
