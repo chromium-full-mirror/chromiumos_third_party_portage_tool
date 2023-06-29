@@ -2,6 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 from _emerge.CompositeTask import CompositeTask
+from portage import telemetry
 from portage.dep import _repo_separator
 from portage.output import colorize
 class PackageMerge(CompositeTask):
@@ -58,6 +59,8 @@ class PackageMerge(CompositeTask):
 		pkg_count = self.merge.pkg_count
 
 		if self.postinst_failure:
+			span = telemetry.get_current_span()
+			span.set_status(telemetry.StatusCode.ERROR, self.postinst_failure)
 			action_desc = "Failed"
 			preposition = "in"
 			counter_str = ""

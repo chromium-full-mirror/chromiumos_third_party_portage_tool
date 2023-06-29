@@ -7,6 +7,7 @@ import sys
 
 import portage
 from portage import os
+from portage import telemetry
 from portage import _encodings
 from portage import _unicode_encode
 from portage import _unicode_decode
@@ -54,6 +55,9 @@ class EbuildFetcher(CompositeTask):
 		try:
 			uri_map = uri_map_task.future.result()
 		except portage.exception.InvalidDependString as e:
+			span = telemetry.get_current_span()
+			span.record_exception(e)
+			span.set_status(telemetry.StatusCode.Error)
 			msg_lines = []
 			msg = "Fetch failed for '%s' due to invalid SRC_URI: %s" % \
 				(self.pkg.cpv, e)

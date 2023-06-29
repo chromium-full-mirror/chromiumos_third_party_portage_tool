@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 
+import os
 import platform
 import signal
 import sys
@@ -14,6 +15,7 @@ import sys
 # the SystemExit exception with a message like this:
 # Exception SystemExit: 130 in <function remove at 0x7fd2146c1320> ignored
 global_event_loop = None
+token = None
 try:
 
 	def exithandler(signum, _frame):
@@ -36,6 +38,9 @@ try:
 
 	signal.signal(debug_signum, debug_signal)
 
+	from portage import telemetry
+	telemetry.USE_TELEMETRY = "PORTAGE_OTEL" in os.environ
+
 	from os import path as osp
 	if osp.isfile(osp.join(osp.dirname(osp.dirname(osp.realpath(__file__))), ".portage_not_installed")):
 		sys.path.insert(0, osp.join(osp.dirname(osp.dirname(osp.realpath(__file__))), "lib"))
@@ -45,30 +50,50 @@ try:
 	from portage.util._eventloop.global_event_loop import global_event_loop
 	from _emerge.main import emerge_main
 
+	tracer = telemetry.get_tracer(__name__)
+
 	if __name__ == "__main__":
+		try:
+			telemetry.init()
+		except Exception:
+			pass
+
 		from portage.exception import IsADirectory, ParseError, \
 				PermissionDenied
 		portage.process.sanitize_fds()
+
+		span = tracer.start_span(__name__)
+		token = telemetry.attach_span(span)
+
 		try:
 			retval = emerge_main()
 		except PermissionDenied as e:
+			span.record_exception(e)
+			span.set_status(telemetry.StatusCode.ERROR)
 			sys.stderr.write("Permission denied: '%s'\n" % str(e))
 			sys.exit(e.errno)
 		except IsADirectory as e:
+			span.record_exception(e)
+			span.set_status(telemetry.StatusCode.ERROR)
 			sys.stderr.write("'%s' is a directory, but should be a file!\n"
 					"See portage man page for information on "
 					"which files may be directories.\n" %
 					str(e))
 			sys.exit(e.errno)
 		except ParseError as e:
+			span.record_exception(e)
+			span.set_status(telemetry.StatusCode.ERROR)
 			sys.stderr.write("%s\n" % str(e))
 			sys.exit(1)
-		except (KeyboardInterrupt, SystemExit):
+		except (KeyboardInterrupt, SystemExit) as e:
+			span.record_exception(e)
 			raise
-		except Exception:
+		except Exception as e:
 			# If an unexpected exception occurs then we don't want the
 			# mod_echo output to obscure the traceback, so dump the
 			# mod_echo output before showing the traceback.
+			span.record_exception(e)
+			span.set_status(telemetry.StatusCode.ERROR)
 			import traceback
 			tb_str = traceback.format_exc()
 			try:
@@ -79,6 +104,8 @@ try:
 				mod_echo.finalize()
 			sys.stderr.write(tb_str)
 			sys.exit(1)
+
+		span.set_status(telemetry.StatusCode.OK if retval == os.EX_OK else telemetry.StatusCode.ERROR)
 		sys.exit(retval)
 
 except KeyboardInterrupt:
@@ -87,5 +114,11 @@ except KeyboardInterrupt:
 	sys.stderr.flush()
 	sys.exit(128 + signal.SIGINT)
 finally:
+	if token is not None:
+		span = telemetry.get_current_span()
+		if span and span.is_recording():
+			span.end()
+
+		telemetry.detach_span(token)
 	if global_event_loop is not None:
 		global_event_loop().close()

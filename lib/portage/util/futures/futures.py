@@ -145,7 +145,7 @@ class _EventLoopFuture(object):
 			raise InvalidStateError('Exception is not set.')
 		return self._exception
 
-	def add_done_callback(self, fn):
+	def add_done_callback(self, fn, context=None):
 		"""Add a callback to be run when the future becomes done.
 
 		The callback is called with a single argument - the future object. If
@@ -153,7 +153,7 @@ class _EventLoopFuture(object):
 		scheduled with call_soon.
 		"""
 		if self._state != _PENDING:
-			self._loop.call_soon(fn, self)
+			self._loop.call_soon(fn, self, context=context)
 		else:
 			self._callbacks.append(fn)
 

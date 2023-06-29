@@ -1,11 +1,29 @@
 # Copyright 1999-2018 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
+import contextvars
 import signal
 
+from portage import telemetry
 from portage import os
 from portage.util.futures import asyncio
 from portage.util.SlotObject import SlotObject
+
+tracer = telemetry.get_tracer(__name__)
+
+TRACE_LIST = frozenset([
+	"MergeListItem",
+	"EbuildBuild",
+	"PackageMerge",
+	"Binpkg",
+	"EbuildMerge"
+	"EbuildFetcher",
+	"EbuildFetchOnly",
+	"PackageUninstall",
+	"EbuildBinpkg",
+	"BinpkgExtractorAsync",
+])
+
 
 class AsynchronousTask(SlotObject):
 	"""
@@ -18,16 +36,57 @@ class AsynchronousTask(SlotObject):
 	"""
 
 	__slots__ = ("background", "cancelled", "returncode", "scheduler") + \
-		("_exit_listeners", "_exit_listener_stack", "_start_listeners")
+		("_exit_listeners", "_exit_listener_stack", "_start_listeners") + \
+		("_exit_listener_contexts", "_start_listener_contexts")
 
 	_cancelled_returncode = - signal.SIGINT
 
 	def start(self):
 		"""
 		Start an asynchronous task and then return as soon as possible.
+
+		Opentelemetry Span is used to track the lifecycle of the Task. We make
+		a copy of the context invoking the start; the span contained in the
+		context becomes the parent span. A new span is created and attached to
+		the created context. The _start function is run inside this context
+		ensuring that this span is available to _start function overridden by
+		the child class. The context is also passed along to the exit listener
+		that detaches the span from this context at the end of the task.
 		"""
 		self._start_hook()
-		self._start()
+
+		context = contextvars.copy_context()
+
+		def _stop_span(token, returncode):
+			span = telemetry.get_current_span()
+			span.set_attribute("return_code", str(returncode))
+			span.set_status(telemetry.StatusCode.ERROR if returncode != os.EX_OK else telemetry.StatusCode.OK)
+			span.end()
+			telemetry.detach_span(token)
+
+		def _start_internal():
+			name = self.__class__.__name__
+			if name in TRACE_LIST:
+				span = tracer.start_span(name)
+
+				pkg = None
+				if hasattr(self, "pkg"):
+					pkg = self.pkg
+				elif hasattr(self, "merge") and hasattr(self.merge, "pkg"):
+					pkg = self.merge.pkg
+
+				if pkg:
+					span.set_attributes({
+						"pkg": str(pkg.cpv),
+						"pkg_parents": pkg.parents or [],
+						"pkg_installed": str(pkg.installed),
+						"pkg_type_name": str(pkg.type_name),
+					})
+				token = telemetry.attach_span(span)
+				self.addExitListener(lambda self: _stop_span(token, self.returncode), context=context)
+			self._start()
+
+		context.run(_start_internal)
 
 	def async_wait(self):
 		"""
@@ -125,34 +184,41 @@ class AsynchronousTask(SlotObject):
 			return True
 		return False
 
-	def addStartListener(self, f):
+	def addStartListener(self, f, context=None):
 		"""
 		The function will be called with one argument, a reference to self.
 		"""
 		if self._start_listeners is None:
 			self._start_listeners = []
+			self._start_listener_contexts = {}
 		self._start_listeners.append(f)
+		self._start_listener_contexts[f] = context or contextvars.copy_context()
 
 	def removeStartListener(self, f):
 		if self._start_listeners is None:
 			return
 		self._start_listeners.remove(f)
+		del self._start_listener_contexts[f]
 
 	def _start_hook(self):
 		if self._start_listeners is not None:
 			start_listeners = self._start_listeners
+			contexts = self._start_listener_contexts
 			self._start_listeners = None
+			self._start_listener_contexts = None
 
 			for f in start_listeners:
-				f(self)
+				contexts[f].run(f, self)
 
-	def addExitListener(self, f):
+	def addExitListener(self, f, context=None):
 		"""
 		The function will be called with one argument, a reference to self.
 		"""
 		if self._exit_listeners is None:
 			self._exit_listeners = []
+			self._exit_listener_contexts = {}
 		self._exit_listeners.append(f)
+		self._exit_listener_contexts[f] = context or contextvars.copy_context()
 
 	def removeExitListener(self, f):
 		if self._exit_listeners is None:
@@ -160,6 +226,7 @@ class AsynchronousTask(SlotObject):
 				self._exit_listener_stack.remove(f)
 			return
 		self._exit_listeners.remove(f)
+		del self._exit_listener_contexts[f]
 
 	def _wait_hook(self):
 		"""
@@ -184,6 +251,8 @@ class AsynchronousTask(SlotObject):
 			# to call it after it has been been passed into
 			# removeExitListener().
 			self._exit_listener_stack = self._exit_listeners
+			contexts = self._exit_listener_contexts
+			self._exit_listener_contexts = None
 			self._exit_listeners = None
 
 			# Execute exit listeners in reverse order, so that
@@ -192,5 +261,5 @@ class AsynchronousTask(SlotObject):
 			# task count as soon as one of its tasks exits, so that
 			# the value is accurate when other listeners execute.
 			while self._exit_listener_stack:
-				self._exit_listener_stack.pop()(self)
-
+				fn = self._exit_listener_stack.pop()
+				contexts[fn].run(fn, self)
