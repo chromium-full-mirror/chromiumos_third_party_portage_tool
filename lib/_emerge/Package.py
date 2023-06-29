@@ -31,7 +31,7 @@ else:
 class Package(Task):
 
 	__hash__ = Task.__hash__
-	__slots__ = ("built", "cpv", "depth",
+	__slots__ = ("built", "cpv", "depth", "parents",
 		"installed", "onlydeps", "operation",
 		"root_config", "type_name",
 		"category", "counter", "cp", "cpv_split",
