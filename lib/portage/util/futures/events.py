@@ -65,13 +65,13 @@ class AbstractEventLoop(_AbstractEventLoop):
 	def _timer_handle_cancelled(self, handle):
 		raise NotImplementedError
 
-	def call_soon(self, callback, *args, context=None):
-		return self.call_later(0, callback, *args, context=context)
+	def call_soon(self, callback, *args):
+		return self.call_later(0, callback, *args)
 
-	def call_later(self, delay, callback, *args, context=None):
+	def call_later(self, delay, callback, *args):
 		raise NotImplementedError
 
-	def call_at(self, when, callback, *args, context=None):
+	def call_at(self, when, callback, *args):
 		raise NotImplementedError
 
 	def time(self):
@@ -80,10 +80,10 @@ class AbstractEventLoop(_AbstractEventLoop):
 	def create_future(self):
 		raise NotImplementedError
 
-	def create_task(self, coro, context=None):
+	def create_task(self, coro):
 		raise NotImplementedError
 
-	def call_soon_threadsafe(self, callback, *args, context=None):
+	def call_soon_threadsafe(self, callback, *args):
 		raise NotImplementedError
 
 	def run_in_executor(self, executor, func, *args):

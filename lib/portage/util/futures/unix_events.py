@@ -97,17 +97,16 @@ class _PortageEventLoop(events.AbstractEventLoop):
 		"""
 		return self
 
-	def create_task(self, coro, context=None):
+	def create_task(self, coro):
 		"""
 		Schedule a coroutine object.
 
 		@type coro: coroutine
 		@param coro: a coroutine to schedule
-		@param context: context to pass
 		@rtype: asyncio.Task
 		@return: a task object
 		"""
-		return asyncio.Task(coro, loop=self, context=context)
+		return asyncio.Task(coro, loop=self)
 
 	def connect_read_pipe(self, protocol_factory, pipe):
 		"""
