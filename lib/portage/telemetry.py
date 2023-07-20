@@ -72,7 +72,11 @@ def init():
 		telemetry_detector.SystemDetector(),
 	])
 	trace.set_tracer_provider(trace_sdk.TracerProvider(resource=resource))
-	exporter = export.ConsoleSpanExporter(service_name="portage", out=file)
+	exporter = export.ConsoleSpanExporter(
+		service_name="portage",
+		out=file,
+		formatter=lambda span: span.to_json(indent=None),
+	)
 	trace.get_tracer_provider().add_span_processor(export.BatchSpanProcessor(exporter))
 
 
