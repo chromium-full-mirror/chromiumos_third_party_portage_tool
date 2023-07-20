@@ -18,7 +18,6 @@ from datetime import datetime
 import enum
 import os
 from pathlib import Path
-import sys
 from typing import Optional
 
 from portage.util import normalize_path
@@ -29,6 +28,8 @@ try:
 	from opentelemetry.sdk import trace as trace_sdk
 	from opentelemetry.sdk.trace import export
 	from opentelemetry.sdk import resources
+	# Transitive opentelemetry import.
+	from portage import telemetry_detector
 
 	_HAS_OTEL = True
 except ImportError:
@@ -66,13 +67,10 @@ def init():
 
 	resource = resources.get_aggregated_resources([
 		resources.ProcessResourceDetector(),
-		resources.OTELResourceDetector()
-	]).merge(resources.Resource.create({
-		resources.SERVICE_NAME: "portage",
-		resources.PROCESS_COMMAND: "emerge",
-		resources.PROCESS_COMMAND_LINE: sys.argv,
-		"cpu.count": os.cpu_count(),
-	}))
+		resources.OTELResourceDetector(),
+		telemetry_detector.ProcessDetector(),
+		telemetry_detector.SystemDetector(),
+	])
 	trace.set_tracer_provider(trace_sdk.TracerProvider(resource=resource))
 	exporter = export.ConsoleSpanExporter(service_name="portage", out=file)
 	trace.get_tracer_provider().add_span_processor(export.BatchSpanProcessor(exporter))
@@ -112,7 +110,7 @@ class NoOpSpan:
 		pass
 
 	def is_recording(self) -> bool:
-		True
+		return True
 
 	def add_event(self, *args) -> None:
 		pass
@@ -141,7 +139,7 @@ class NoOpTracer:
 
 	def start_span(self, _name: str) -> NoOpSpan:
 		"""Start span."""
-		return NoOpSpan
+		return NoOpSpan()
 
 	@contextlib.contextmanager
 	def start_as_current_span(self, name: str):
