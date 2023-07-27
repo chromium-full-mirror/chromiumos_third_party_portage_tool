@@ -20,7 +20,7 @@ from _emerge.MiscFunctionsProcess import MiscFunctionsProcess
 from _emerge.TaskSequence import TaskSequence
 
 import portage
-from portage import _encodings, _unicode_decode, _unicode_encode, os, telemetry
+from portage import _encodings, _unicode_decode, _unicode_encode, os
 from portage.package.ebuild.digestcheck import digestcheck
 from portage.package.ebuild.doebuild import _check_temp_dir
 from portage.package.ebuild._spawn_nofetch import SpawnNofetchWithoutBuilddir
@@ -38,8 +38,6 @@ class EbuildBuild(CompositeTask):
 		if not self.opts.fetchonly:
 			rval = _check_temp_dir(self.settings)
 			if rval != os.EX_OK:
-				span = telemetry.get_current_span()
-				span.set_status(telemetry.StatusCode.ERROR, "temp dir check failed")
 				self.returncode = rval
 				self._current_task = None
 				self._async_wait()

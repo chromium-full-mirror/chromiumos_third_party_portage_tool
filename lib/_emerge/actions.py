@@ -37,7 +37,6 @@ portage.proxy.lazyimport.lazyimport(globals(),
 
 from portage import os
 from portage import shutil
-from portage import telemetry
 from portage import eapi_is_supported, _encodings, _unicode_decode
 from portage.cache.cache_errors import CacheError
 from portage.const import GLOBAL_CONFIG_PATH, VCS_DIRS, _DEPCLEAN_LIB_CHECK_DEFAULT
@@ -99,9 +98,6 @@ if sys.hexversion >= 0x3000000:
 else:
 	_unicode = unicode
 
-tracer = telemetry.get_tracer(__name__)
-
-@tracer.start_as_current_span("action_build")
 def action_build(emerge_config, trees=DeprecationWarning,
 	mtimedb=DeprecationWarning, myopts=DeprecationWarning,
 	myaction=DeprecationWarning, myfiles=DeprecationWarning, spinner=None):
@@ -339,44 +335,41 @@ def action_build(emerge_config, trees=DeprecationWarning,
 			print(darkgreen("emerge: It seems we have nothing to resume..."))
 			return os.EX_OK
 
-		with tracer.start_as_current_span("build_depgraph") as span:
-			try:
-				success, mydepgraph, favorites = backtrack_depgraph(
-					settings, trees, myopts, myparams, myaction, myfiles, spinner)
-			except portage.exception.PackageSetNotFound as e:
-				root_config = trees[settings['EROOT']]['root_config']
-				display_missing_pkg_set(root_config, e.value)
-				span.record_exception(e)
-				span.set_status(telemetry.StatusCode.ERROR)
-				return 1
+		try:
+			success, mydepgraph, favorites = backtrack_depgraph(
+				settings, trees, myopts, myparams, myaction, myfiles, spinner)
+		except portage.exception.PackageSetNotFound as e:
+			root_config = trees[settings['EROOT']]['root_config']
+			display_missing_pkg_set(root_config, e.value)
+			return 1
 
-			if success and mydepgraph.need_config_reload():
-				load_emerge_config(emerge_config=emerge_config)
-				adjust_configs(emerge_config.opts, emerge_config.trees)
-				settings, trees, mtimedb = emerge_config
+		if success and mydepgraph.need_config_reload():
+			load_emerge_config(emerge_config=emerge_config)
+			adjust_configs(emerge_config.opts, emerge_config.trees)
+			settings, trees, mtimedb = emerge_config
 
-				# After config reload, the freshly instantiated binarytree
-				# instances need to load remote metadata if --getbinpkg
-				# is enabled. Use getbinpkg_refresh=False to use cached
-				# metadata, since the cache is already fresh.
-				if "--getbinpkg" in emerge_config.opts:
-					for root_trees in emerge_config.trees.values():
-						try:
-							root_trees["bintree"].populate(
-								getbinpkgs=True,
-								getbinpkg_refresh=False)
-						except ParseError as e:
-							writemsg("\n\n!!!%s.\nSee make.conf(5) for more info.\n"
-									% e, noiselevel=-1)
-							return 1
+			# After config reload, the freshly instantiated binarytree
+			# instances need to load remote metadata if --getbinpkg
+			# is enabled. Use getbinpkg_refresh=False to use cached
+			# metadata, since the cache is already fresh.
+			if "--getbinpkg" in emerge_config.opts:
+				for root_trees in emerge_config.trees.values():
+					try:
+						root_trees["bintree"].populate(
+							getbinpkgs=True,
+							getbinpkg_refresh=False)
+					except ParseError as e:
+						writemsg("\n\n!!!%s.\nSee make.conf(5) for more info.\n"
+								 % e, noiselevel=-1)
+						return 1
 
-			if "--autounmask-only" in myopts:
-				mydepgraph.display_problems()
-				return 0
+		if "--autounmask-only" in myopts:
+			mydepgraph.display_problems()
+			return 0
 
-			if not success:
-				mydepgraph.display_problems()
-				return 1
+		if not success:
+			mydepgraph.display_problems()
+			return 1
 
 	mergecount = None
 	if "--pretend" not in myopts and \
@@ -538,33 +531,25 @@ def action_build(emerge_config, trees=DeprecationWarning,
 		if mergecount == 0:
 			retval = os.EX_OK
 		else:
-			graph_config = mydepgraph.schedulerGraph()
+			mergetask = Scheduler(settings, trees, mtimedb, myopts,
+				spinner, favorites=favorites,
+				graph_config=mydepgraph.schedulerGraph())
 
-			with tracer.start_as_current_span("execute_plan") as span:
-				mergetask = Scheduler(settings, trees, mtimedb, myopts,
-					spinner, favorites=favorites,
-					graph_config=graph_config)
+			del mydepgraph
+			clear_caches(trees)
 
-				del mydepgraph
-				clear_caches(trees)
+			retval = mergetask.merge()
 
-				retval = mergetask.merge()
-
-				if retval == os.EX_OK and \
-					not (buildpkgonly or fetchonly or pretend):
-					if "yes" == settings.get("AUTOCLEAN"):
-						with tracer.start_as_current_span("autoclean"):
-							unmerge(trees[settings['EROOT']]['root_config'],
-								myopts, "clean", [],
-								ldpath_mtimes, autoclean=1)
-					else:
-						portage.writemsg_stdout(colorize("WARN", "WARNING:")
-							+ " AUTOCLEAN is disabled.  This can cause serious"
-							+ " problems due to overlapping packages.\n")
-
-				if retval is not os.EX_OK:
-					span.set_status(telemetry.StatusCode.ERROR)
-				span.set_attribute("return_value", str(retval))
+			if retval == os.EX_OK and \
+				not (buildpkgonly or fetchonly or pretend):
+				if "yes" == settings.get("AUTOCLEAN"):
+					unmerge(trees[settings['EROOT']]['root_config'],
+						myopts, "clean", [],
+						ldpath_mtimes, autoclean=1)
+				else:
+					portage.writemsg_stdout(colorize("WARN", "WARNING:")
+						+ " AUTOCLEAN is disabled.  This can cause serious"
+						+ " problems due to overlapping packages.\n")
 
 		return retval
 
