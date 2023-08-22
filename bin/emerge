@@ -39,7 +39,7 @@ try:
 	signal.signal(debug_signum, debug_signal)
 
 	from portage import telemetry
-	telemetry.USE_TELEMETRY = "PORTAGE_OTEL" in os.environ
+	telemetry.USE_TELEMETRY = True
 
 	from os import path as osp
 	if osp.isfile(osp.join(osp.dirname(osp.dirname(osp.realpath(__file__))), ".portage_not_installed")):
