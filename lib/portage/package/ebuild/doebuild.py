@@ -1749,10 +1749,9 @@ def spawnebuild(mydo, actionmap, mysettings, debug, alwaysdep=0,
 _post_phase_cmds = {
 
 	"install" : [
-		"install_hooks",
 		"install_qa_check",
 		"install_symlink_html_docs",
-	],
+		"install_hooks"],
 
 	"preinst" : (
 		(
