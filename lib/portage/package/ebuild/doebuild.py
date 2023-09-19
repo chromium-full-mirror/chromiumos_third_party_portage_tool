@@ -700,7 +700,7 @@ def doebuild(myebuild, mydo, _unused=DeprecationWarning, settings=None, debug=0,
 	# to collapse targets down.
 	actionmap_deps={
 	"pretend"  : [],
-	"setup":  ["pretend"],
+	"setup":  [], # CrOS: We don't use pretend.
 	"unpack": ["setup"],
 	"prepare": ["unpack"],
 	"configure": ["prepare"],
