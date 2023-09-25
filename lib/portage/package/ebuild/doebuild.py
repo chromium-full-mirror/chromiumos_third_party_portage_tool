@@ -212,9 +212,21 @@ def _doebuild_spawn(phase, settings, actionmap=None, **kwargs):
 				settings["PF"])
 			shutil.rmtree(artifacts_dir, ignore_errors=True)
 			if not is_empty:
-				# renames doesn't handle EEXIST when dirs are created in parallel.
 				os.makedirs(os.path.dirname(artifacts_dir), exist_ok=True)
-				os.renames(artifacts_tmp_dir, artifacts_dir)
+				src = artifacts_tmp_dir
+				dst = os.path.join(artifacts_dir,
+					os.path.basename(artifacts_tmp_dir))
+				# src and dst may be on different filesystems
+				# (different bind mounts), so os.rename()
+				# doesn't work. We'd like to use shutil.move(),
+				# but portage wraps and overrides it with a
+				# string encoding wrapper that breaks
+				# shutil.move() when used with directories. See
+				# https://bugs.gentoo.org/914722 for more info.
+				# Thus, we're left open-coding shutil.move()
+				# for our specific use case.
+				shutil.copytree(src, dst, symlinks=True)
+				shutil.rmtree(src)
 		settings.pop('EBUILD_PHASE', None)
 
 def _spawn_phase(phase, settings, actionmap=None, returnpid=False,
