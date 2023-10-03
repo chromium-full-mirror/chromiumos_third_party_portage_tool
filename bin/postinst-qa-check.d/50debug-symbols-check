@@ -20,7 +20,8 @@ check_debug_symbol_strip_errors() {
   [[ $# -eq 0 ]] && set -- "${T}/build.log"
 
   unstripped_files=$(grep -e "Unable to recognise the format of the input" \
-                          -e "File format not recognized" "$@")
+                          -e "File format not recognized" "$@" | \
+                          grep -v "grep")
   if [[ -n "${unstripped_files}" ]]; then
     die "objcopy/strip failed to recognize the format of some files:
 ${unstripped_files}
