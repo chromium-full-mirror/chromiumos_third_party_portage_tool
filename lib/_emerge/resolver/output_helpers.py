@@ -185,6 +185,7 @@ class _PackageCounters(object):
 				"packages_with_unsatisfied_conflicts": self.blocks - self.blocks_satisfied,
 				"total_installed_packages": total_installs,
 				"total_installed_from_binary": self.binary,
+				"sys.argv": sys.argv,
 		}
 		# currently omitted: totalsize, restrict_fetch, restrict_fetch_satisfied, interactive
 		return json.dumps(result)

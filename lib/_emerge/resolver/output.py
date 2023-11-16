@@ -952,8 +952,10 @@ class Display(object):
 		if self.conf.changelog:
 			self.print_changelog()
 
-		# write depgraph counters to file
-		self.write_counters()
+		# write depgraph counters to file. For now, do not write counters
+		# if --pretend is passed via command.
+		if "--pretend" not in depgraph._frozen_config.myopts:
+			self.write_counters()
 
 		return os.EX_OK
 
