@@ -1800,8 +1800,9 @@ class config(object):
 				# "test" is in IUSE and USE=test is masked, so execution
 				# of src_test() probably is not reliable. Therefore,
 				# temporarily disable FEATURES=test just for this package.
-				self["FEATURES"] = " ".join(x for x in self.features \
-					if x != "test")
+				self["FEATURES"] = " ".join(
+					x for x in sorted(self.features) if x != "test"
+				)
 
 		if eapi_attrs.feature_flag_targetroot and \
 			("targetroot" in explicit_iuse or iuse_implicit_match("targetroot")):
