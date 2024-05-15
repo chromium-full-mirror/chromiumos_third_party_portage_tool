@@ -12,13 +12,13 @@ The api for the no op implementations is kept consistent with opentelemetry
 equivalent classes.
 """
 
-import atexit
 import contextlib
 from datetime import datetime
 import enum
 import os
 from pathlib import Path
 from typing import Optional
+import uuid
 
 from portage.util import normalize_path
 
@@ -47,6 +47,7 @@ def init():
 		from opentelemetry.sdk import resources
 		# Transitive opentelemetry import.
 		from portage import telemetry_detector
+		from portage import telemetry_exporter
 	except ImportError:
 		_HAS_OTEL = False
 		return
@@ -54,7 +55,6 @@ def init():
 		_HAS_OTEL = True
 
 	try:
-		# Create traces-YYYYMMDD-HHMMSS.out file in PORTAGE_LOGDIR.
 		if "PORTAGE_LOGDIR" in os.environ and os.access(
 			os.environ["PORTAGE_LOGDIR"],
 			os.W_OK
@@ -65,12 +65,30 @@ def init():
 				normalize_path(os.environ.get('PORTAGE_OVERRIDE_EPREFIX', '/'))
 			)
 			logdir = EPREFIX / "var" / "log" / "portage"
-		traces_file = logdir / f'traces-{datetime.now().strftime("%Y%m%d-%H%M%S")}.out'
-		file = open(traces_file, "w", encoding="UTF-8")
-	except Exception:
-		file = open(os.devnull, "w")
 
-	atexit.register(file.close)
+		# Copy the basic telemetry log directory/file format chromite uses.
+		logdir /= "telemetry"
+
+		now = datetime.now()
+		logdir /= now.strftime("%Y-%m-%d")
+
+		# We only instrument emerge, so just hardcode it for now.
+		cmd = "emerge"
+		cmd_time = now.strftime("%H_%M_%S")
+		logdir /= f'{cmd_time}-{cmd}'
+
+		file_uuid = str(uuid.uuid4())
+		traces_file = logdir / f'{file_uuid}.otel.traces.json'
+		traces_file.parent.mkdir(parents=True, exist_ok=True)
+	except Exception:
+		# Skip telemetry if we can't generate a path to put it in.
+		return
+
+	try:
+		exporter = telemetry_exporter.ChromiteFileExporter(traces_file)
+	except OSError:
+		# Just in case we can't open the trace file.
+		return
 
 	resource = resources.get_aggregated_resources(
 		[
@@ -81,13 +99,8 @@ def init():
 		]
 	)
 	trace.set_tracer_provider(trace_sdk.TracerProvider(resource=resource))
-	exporter = export.ConsoleSpanExporter(
-		service_name="portage",
-		out=file,
-		# formatter=lambda span: span.to_json(indent=None),
-	)
 	trace.get_tracer_provider().add_span_processor(
-		export.BatchSpanProcessor(exporter)
+		export.SimpleSpanProcessor(exporter)
 	)
 
 

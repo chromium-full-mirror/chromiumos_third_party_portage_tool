@@ -31,7 +31,7 @@ PROCESS_ENV = "process.env"
 OS_NAME = "os.name"
 DMI_PATH = Path("/sys/class/dmi/id/product_name")
 GCE_DMI = "Google Compute Engine"
-CROS_BOT_USER = "chromeos-bot"
+CROS_BOT_USER = "chrome-bot"
 PROC_MEMINFO_PATH = Path("/proc/meminfo")
 
 
@@ -85,7 +85,7 @@ class SystemDetector(resources.ResourceDetector):
 			CPU_ARCHITECTURE: platform.machine(),
 			CPU_COUNT: os.cpu_count(),
 			CPU_NAME: platform.processor(),
-			HOST_TYPE: host_type,
+			HOST_TYPE: host_type.strip(),
 			MEMORY_SWAP_TOTAL: mem_info.total_swap_memory,
 			MEMORY_TOTAL: mem_info.total_physical_ram,
 			OS_NAME: os.name,
