@@ -6720,6 +6720,7 @@ class depgraph(object):
 					if pkg.installed and self._pkg_visibility_check(pkg, autounmask_level):
 						return pkg, existing_node
 
+			matched_oldpkg = [x for x in matched_oldpkg if x in matched_packages]
 			visible_matches = []
 			if matched_oldpkg:
 				visible_matches = [pkg.cpv for pkg in matched_oldpkg \
