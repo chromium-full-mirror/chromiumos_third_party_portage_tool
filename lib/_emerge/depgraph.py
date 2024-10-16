@@ -4926,6 +4926,8 @@ class depgraph(object):
 
 		for atoms in rdepend.values():
 			for atom in atoms:
+				if atom.blocker:
+					continue
 				if ignore_use:
 					atom = atom.without_use
 				pkg, existing = self._select_package(
