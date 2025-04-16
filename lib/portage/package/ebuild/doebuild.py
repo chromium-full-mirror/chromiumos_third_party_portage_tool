@@ -206,7 +206,7 @@ def _doebuild_spawn(phase, settings, actionmap=None, **kwargs):
 				else:
 					raise
 			artifacts_dir = os.path.join(
-				settings["SYSROOT"],
+				settings["ROOT"],
 				"var/lib/chromeos/package-artifacts",
 				settings["CATEGORY"],
 				settings["PF"])
