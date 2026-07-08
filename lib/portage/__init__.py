@@ -463,7 +463,7 @@ _testing_eapis = frozenset([
 	"5-progress",
 ])
 _deprecated_eapis = frozenset([
-	"0", "1", "2", "3", "4",
+	"0", "1", "2", "3", "4", "5", "6",
 	"4_pre1",
 	"4-slot-abi",
 	"3_pre2",
