@@ -7,6 +7,7 @@ from collections import deque
 import datetime
 import gc
 import gzip
+import itertools
 import logging
 import signal
 import subprocess
@@ -731,8 +732,27 @@ class Scheduler(PollScheduler):
 		if self._parallel_fetch:
 
 			prefetchers = self._prefetchers
+			mergelist = self._mergelist
+			# With _max_jobs > 1, ready packages bypass the fetch queue
+			# (see _schedule_fetch). Keep the first _max_jobs entries in
+			# merge order so early jobs are not starved on slow links, then
+			# interleave merge order and descending file size. Keep merge
+			# order for --jobs=1, where ready packages share the queue.
+			if self._max_jobs is not True and self._max_jobs > 1:
+				rest = mergelist[self._max_jobs:]
+				by_size = sorted(
+					rest,
+					key=lambda pkg: (pkg.cpv.file_size or 0)
+					if isinstance(pkg, Package) and pkg.operation != "uninstall"
+					else 0,
+					reverse=True,
+				)
+				pairs = itertools.chain.from_iterable(zip(rest, by_size))
+				mergelist = list(mergelist[:self._max_jobs]) + list(
+					dict.fromkeys(pairs)
+				)
 
-			for pkg in self._mergelist:
+			for pkg in mergelist:
 				# mergelist can contain solved Blocker instances
 				if not isinstance(pkg, Package) or pkg.operation == "uninstall":
 					continue
