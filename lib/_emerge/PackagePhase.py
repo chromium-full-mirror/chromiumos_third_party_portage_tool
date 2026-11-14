@@ -40,7 +40,7 @@ class PackagePhase(CompositeTask):
 			self._proot = os.path.join(self.settings['T'], 'packaging')
 			self._start_task(SpawnProcess(
 				args=[self._shell_binary, '-e', '-c', ('rm -rf {PROOT}; '
-				'cp -pPR $(cp --help | grep -q -- "^[[:space:]]*-l," && echo -l)'
+				'cp -pPR $(LC_ALL=C TERM=dumb cp --help | grep -q -- "^[[:space:]]*-l," && echo -l)'
 				' "${{D}}" {PROOT}').format(PROOT=portage._shell_quote(self._proot))],
 				background=self.background, env=self.settings.environ(),
 				scheduler=self.scheduler, logfile=self.logfile),
