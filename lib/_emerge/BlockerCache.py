@@ -4,7 +4,6 @@
 import errno
 import sys
 from portage.util import writemsg
-from portage.data import secpass
 import portage
 from portage import os
 
@@ -143,7 +142,8 @@ class BlockerCache(portage.cache.mappings.MutableMapping):
 		}
 		"""
 		if len(self._modified) >= self._cache_threshold and \
-			secpass >= 2:
+			(os.getuid() == 0 or
+			"unprivileged" in self._vardb.settings.features):
 			try:
 				f = portage.util.atomic_ofstream(self._cache_filename, mode='wb')
 				pickle.dump(self._cache_data, f, protocol=2)

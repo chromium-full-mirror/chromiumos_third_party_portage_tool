@@ -11,7 +11,7 @@ import portage
 portage.proxy.lazyimport.lazyimport(globals(),
 	'hashlib:md5',
 	'portage.checksum:_perform_md5_merge@perform_md5',
-	'portage.data:portage_gid,portage_uid,secpass',
+	'portage.data:portage_gid,portage_uid',
 	'portage.dbapi.dep_expand:dep_expand',
 	'portage.dbapi._MergeProcess:MergeProcess',
 	'portage.dbapi._SyncfsProcess:SyncfsProcess',
@@ -611,6 +611,24 @@ class vardbapi(dbapi):
 	def findname(self, mycpv, myrepo=None):
 		return self.getpath(str(mycpv), filename=catsplit(mycpv)[1]+".ebuild")
 
+	def _aux_cache_writable(self):
+		"""Check if the current user has sufficient privileges and write
+		access to flush this tree's VDB metadata cache."""
+		# Do not rely on the process-global portage.data.secpass, which is
+		# initialized once from the first config instance (typically the
+		# target ROOT). In unprivileged cross-root mode (ROOT != "/"),
+		# global secpass can be 2 even though "/" is neither unprivileged
+		# nor writable. Check this tree's own settings and verify write
+		# access to both the VDB (required for locking / read-only mounts)
+		# and the cache directory.
+		if _os.getuid() != 0 and "unprivileged" not in self.settings.features:
+			return False
+		if not self.writable:
+			return False
+		cache_dir = os.path.dirname(
+			os.path.realpath(self._aux_cache_filename))
+		return os.access(first_existing(cache_dir), os.W_OK)
+
 	def flush_cache(self):
 		"""If the current user has permission and the internal aux_get cache has
 		been updated, save it to disk and mark it unmodified.  This is called
@@ -620,8 +638,8 @@ class vardbapi(dbapi):
 		users have read access and benefit from faster metadata lookups (as
 		long as at least part of the cache is still valid)."""
 		if self._flush_cache_enabled and \
+			self._aux_cache_writable() and \
 			self._aux_cache is not None and \
-			secpass >= 2 and \
 			(len(self._aux_cache["modified"]) >= self._aux_cache_threshold or
 			not os.path.exists(self._cache_delta_filename)):
 
