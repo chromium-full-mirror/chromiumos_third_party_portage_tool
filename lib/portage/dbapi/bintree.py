@@ -304,6 +304,8 @@ class binarytree(object):
 			self.invalids = []
 			self.settings = settings
 			self._pkg_paths = {}
+			# Memoized binpkg digests keyed by (st_dev, st_ino, st_size, st_mtime_ns).
+			self._digests_cache = {}
 			self._populating = False
 			self._all_directory = os.path.isdir(
 				os.path.join(self.pkgdir, "All"))
@@ -1293,6 +1295,36 @@ class binarytree(object):
 			# some seconds might have elapsed since TIMESTAMP
 			os.utime(fname, (atime, mtime))
 
+	@staticmethod
+	def _file_cache_key(path):
+		# Key on inode, size, and mtime_ns (omitting ctime_ns) so entries
+		# survive atomic .partial -> .tbz2 renames and _file_permissions().
+		try:
+			st = os.stat(path)
+		except OSError:
+			return None
+		return (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)
+
+	def _cache_digests(self, path, digests):
+		# Record verified digests for path so inject() and Binpkg._clean_exit()
+		# avoid re-hashing the same archive synchronously on the event loop.
+		key = self._file_cache_key(path)
+		if key is not None:
+			self._digests_cache.setdefault(key, {}).update(digests)
+
+	def _get_cached_digests(self, path, hashes):
+		# Return requested digests from cache, computing only missing hashes.
+		key = self._file_cache_key(path)
+		if key is None:
+			return perform_multiple_checksums(path, hashes=hashes)
+		cached = self._digests_cache.get(key) or {}
+		missing = [h for h in hashes if h not in cached]
+		if missing:
+			computed = perform_multiple_checksums(path, hashes=missing)
+			cached = self._digests_cache.setdefault(key, {})
+			cached.update(computed)
+		return {h: cached[h] for h in hashes}
+
 	def _pkgindex_entry(self, cpv):
 		"""
 		Performs checksums, and gets size and mtime via lstat.
@@ -1304,7 +1336,8 @@ class binarytree(object):
 		pkg_path = self.getname(cpv)
 
 		d = dict(cpv._metadata.items())
-		d.update(perform_multiple_checksums(
+		# Reuse digests cached by BinpkgVerifier when available.
+		d.update(self._get_cached_digests(
 			pkg_path, hashes=self._pkgindex_hashes))
 
 		d["CPV"] = cpv

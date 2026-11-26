@@ -72,6 +72,11 @@ class BinpkgVerifier(CompositeTask):
 				self.wait()
 				return
 
+		# Cache verified digests so bintree.inject() and Binpkg._clean_exit()
+		# avoid re-hashing the archive synchronously on the event loop.
+		self.pkg.root_config.trees["bintree"]._cache_digests(
+			self._pkg_path, digester.digests)
+
 		if self.pkg.root_config.settings.get("PORTAGE_QUIET") != "1":
 			self._display_success()
 

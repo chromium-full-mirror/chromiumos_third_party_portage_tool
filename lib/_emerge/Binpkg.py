@@ -287,13 +287,14 @@ class Binpkg(CompositeTask):
 			finally:
 				f.close()
 
-		# Store the md5sum in the vdb.
+		# Store the md5sum in the vdb, reusing the cached digest when available.
 		f = io.open(_unicode_encode(os.path.join(infloc, 'BINPKGMD5'),
 			encoding=_encodings['fs'], errors='strict'),
 			mode='w', encoding=_encodings['content'], errors='strict')
 		try:
 			f.write(_unicode_decode(
-				str(portage.checksum.perform_md5(pkg_path)) + "\n"))
+				str(self._bintree._get_cached_digests(
+					pkg_path, hashes=("MD5",))["MD5"]) + "\n"))
 		finally:
 			f.close()
 
